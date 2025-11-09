@@ -1,0 +1,1 @@
+pyinstaller --onefile --noconsole --name "RoboMaster校内赛裁判端" --icon=logo.png main.py
