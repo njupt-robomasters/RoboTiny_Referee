@@ -1,1 +1,1 @@
-pyinstaller --onefile --noconsole --name "RoboMaster校内赛裁判端" --icon=logo.png main.py
+pyinstaller --onefile --noconsole --additional-hooks-dir=hooks --name "RoboMaster校内赛裁判端" --icon=logo.png main.py
