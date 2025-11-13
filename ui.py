@@ -88,7 +88,7 @@ class UI():
             ("赛前2分钟", lambda: self.start_pre_match_countdown(120)),
             ("赛前30秒", lambda: self.start_pre_match_countdown(30)),
             ("赛前5秒", lambda: self.start_pre_match_countdown(5)),
-            ("结束比赛", self.end_match_manually)
+            ("平局", self.set_draw)
         ]
         for text, command in buttons:
             ttk.Button(control_frame, text=text, command=command).pack(side=tk.LEFT, padx=8)
@@ -225,11 +225,15 @@ class UI():
             widgets["fps_label"].config(text=text, foreground=COLOR_TEXT)
 
         # 串口连接状态
-        com_is_connected = team_msg.get("com_is_connected")
-        if not com_is_connected:
-            widgets["com_label"].config(text="未连接", foreground=COLOR_DISCONNECTED)
-        else:
-            widgets["com_label"].config(text="已连接", foreground=COLOR_TEXT)
+        uart_connect_state = team_msg.get("uart_connect_state")
+        if uart_connect_state is None:
+            widgets["com_label"].config(text="USB未连接", foreground=COLOR_DISCONNECTED)
+        elif uart_connect_state == 0:
+            widgets["com_label"].config(text="USB未连接", foreground=COLOR_DISCONNECTED)
+        elif uart_connect_state == 1:
+            widgets["com_label"].config(text="无线未连接", foreground=COLOR_DISCONNECTED)
+        elif uart_connect_state == 2:
+            widgets["com_label"].config(text="无线已连接", foreground=COLOR_TEXT)
 
         # 发射信号强度
         tx_rssi = team_msg.get("tx_rssi")
@@ -257,8 +261,8 @@ class UI():
         self._mqtt.referee_msg.update({"countdown": -seconds, "state": 0, "txt": ""})
         self._match_end_time = time.time() + seconds + MATCH_SECONDS
 
-    def end_match_manually(self):
-        self._mqtt.referee_msg.update({"countdown": 0, "state": 3, "txt": "主裁判结束比赛"})
+    def set_draw(self):
+        self._mqtt.referee_msg.update({"countdown": 0, "state": 3, "txt": "主裁判判定平局"})
         self._match_end_time = None
 
     def give_red_card(self, color):

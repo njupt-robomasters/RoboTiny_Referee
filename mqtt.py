@@ -15,7 +15,7 @@ PUBLISH_FREQ = 10
 
 class MQTT(threading.Thread):
 
-    DEFAULT_CLIENT_MSG = {"hp": None, "com_is_connected": None, "video_fps": None, "tx_rssi": None, "rx_rssi": None}
+    DEFAULT_CLIENT_MSG = {"hp": None, "uart_connect_state": None, "video_fps": None, "tx_rssi": None, "rx_rssi": None}
 
     def __init__(self, level=logging.WARNING):
         super().__init__(daemon=True)
