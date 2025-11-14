@@ -130,7 +130,7 @@ class UI():
 
         status_grid = ttk.Frame(frame, padding=(0, 8))
         status_grid.pack()
-        status_labels = [[("客户端:", 0, "client_hz"), ("图传:", 3, "fps"), ("串口:", 6, "com")], [("TX:", 0, "tx"), ("RX:", 3, "rx")]]
+        status_labels = [[("客户端:", 0, "client_hz"), ("图传:", 3, "fps")], [("装甲板:", 0, "uart_state"), ("TX:", 3, "tx"), ("RX:", 6, "rx")]]
         for r, row in enumerate(status_labels):
             for i, (text, col, key) in enumerate(row):
                 ttk.Label(status_grid, text=text, font=self.fonts["status_bold"]).grid(row=r, column=col, sticky="e")
@@ -173,9 +173,9 @@ class UI():
 
         # 倒计时更新
         if round(MATCH_SECONDS - remaining) < 0:  # 准备阶段
-            self._mqtt.referee_msg["countdown"] = int(round(MATCH_SECONDS - remaining))
+            self._mqtt.referee_msg["countdown_ms"] = int(round((MATCH_SECONDS - remaining)*1000))
         elif round(remaining) > 0:  # 比赛进行中
-            self._mqtt.referee_msg["countdown"] = int(round(remaining))
+            self._mqtt.referee_msg["countdown_ms"] = int(round(remaining*1000))
 
         # 比赛结束判定
         new_state, new_txt = None, None
@@ -197,17 +197,17 @@ class UI():
                 new_state, new_txt = 3, "时间到，双方血量相同"
 
         if new_state is not None:
-            self._mqtt.referee_msg.update({"countdown": 0, "state": new_state, "txt": new_txt})
+            self._mqtt.referee_msg.update({"countdown_ms": 0, "state": new_state, "txt": new_txt})
             self._match_end_time = None
 
     def _update_title(self):
         """刷新标题栏"""
-        seconds = self._mqtt.referee_msg["countdown"]
-        if seconds >= 0:
-            m, s = seconds // 60, seconds % 60
+        seconds_int = int(round(self._mqtt.referee_msg["countdown_ms"] / 1000))
+        if seconds_int >= 0:
+            m, s = seconds_int // 60, seconds_int % 60
             self.countdown_label.config(text=f"{m}:{s:02d}")
         else:
-            abs_seconds = abs(seconds)
+            abs_seconds = abs(seconds_int)
             m, s = abs_seconds // 60, abs_seconds % 60
             self.countdown_label.config(text=f"-{m}:{s:02d}")
         self.text_label.config(text=self._mqtt.referee_msg["txt"])
@@ -241,18 +241,16 @@ class UI():
 
         # 串口连接状态
         uart_connect_state = team_msg.get("uart_connect_state")
-        if uart_connect_state is None:
-            widgets["com_label"].config(text="USB未连接", foreground=COLOR_DISCONNECTED)
-        elif uart_connect_state == 0:
-            widgets["com_label"].config(text="USB未连接", foreground=COLOR_DISCONNECTED)
+        if uart_connect_state == 0:
+            widgets["uart_state_label"].config(text="串口未连接", foreground=COLOR_DISCONNECTED)
         elif uart_connect_state == 1:
-            widgets["com_label"].config(text="无线未连接", foreground=COLOR_DISCONNECTED)
+            widgets["uart_state_label"].config(text="无线未连接", foreground=COLOR_DISCONNECTED)
         elif uart_connect_state == 2:
-            widgets["com_label"].config(text="无线已连接", foreground=COLOR_TEXT)
+            widgets["uart_state_label"].config(text="无线已连接", foreground=COLOR_TEXT)
 
         # 发射信号强度
         tx_rssi = team_msg.get("tx_rssi")
-        if tx_rssi is None:
+        if uart_connect_state != 2 or tx_rssi is None:
             widgets["tx_label"].config(text="未连接", foreground=COLOR_DISCONNECTED)
         else:
             text = f"{tx_rssi:.0f}dBm"
@@ -260,30 +258,30 @@ class UI():
 
         # 接收信号强度
         rx_rssi = team_msg.get("rx_rssi")
-        if rx_rssi is None:
+        if uart_connect_state != 2 or rx_rssi is None:
             widgets["rx_label"].config(text="未连接", foreground=COLOR_DISCONNECTED)
         else:
             text = f"{rx_rssi:.0f}dBm"
             widgets["rx_label"].config(text=text, foreground=COLOR_TEXT)
 
     def reset_match(self):
-        self._mqtt.referee_msg.update({"countdown": 0, "state": 0, "txt": ""})
+        self._mqtt.referee_msg.update({"countdown_ms": 0, "state": 0, "txt": ""})
         self._mqtt.referee_msg["red"]["reset_hp_ms"] = int(time.time() * 1000)
         self._mqtt.referee_msg["blue"]["reset_hp_ms"] = int(time.time() * 1000)
         self._match_end_time = None
 
     def start_pre_match_countdown(self, seconds):
-        self._mqtt.referee_msg.update({"countdown": -seconds, "state": 0, "txt": ""})
+        self._mqtt.referee_msg.update({"countdown_ms": -seconds, "state": 0, "txt": ""})
         self._match_end_time = time.time() + seconds + MATCH_SECONDS
 
     def set_draw(self):
-        self._mqtt.referee_msg.update({"countdown": 0, "state": 3, "txt": "主裁判判定平局"})
+        self._mqtt.referee_msg.update({"countdown_ms": 0, "state": 3, "txt": "主裁判判定平局"})
         self._match_end_time = None
 
     def give_red_card(self, color):
         winner_state = 2 if color == "red" else 1
         winner_name = "蓝方" if color == "red" else "红方"
-        self._mqtt.referee_msg.update({"countdown": 0, "state": winner_state, "txt": f"主裁判判罚，{winner_name}获胜"})
+        self._mqtt.referee_msg.update({"countdown_ms": 0, "state": winner_state, "txt": f"主裁判判罚，{winner_name}获胜"})
         self._match_end_time = None
 
     def give_yellow_card(self, color):

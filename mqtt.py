@@ -15,7 +15,7 @@ PUBLISH_FREQ = 10
 
 class MQTT(threading.Thread):
 
-    DEFAULT_CLIENT_MSG = {"hp": None, "uart_connect_state": None, "video_fps": None, "tx_rssi": None, "rx_rssi": None}
+    DEFAULT_CLIENT_MSG = {"hp": None, "uart_connect_state": 0, "video_fps": None, "tx_rssi": None, "rx_rssi": None}
 
     def __init__(self, level=logging.WARNING):
         super().__init__(daemon=True)
@@ -29,7 +29,7 @@ class MQTT(threading.Thread):
 
         # 可写入
         self.referee_msg = {
-            "countdown": 0, "state": 0, "txt": "",
+            "countdown_ms": 0, "state": 0, "txt": "",
             "red": {"name": "红方队伍", "hp": 100, "yellow_card_ms": 0, "reset_hp_ms": 0},
             "blue": {"name": "蓝方队伍", "hp": 100, "yellow_card_ms": 0, "reset_hp_ms": 0}
         }
@@ -69,7 +69,7 @@ class MQTT(threading.Thread):
     async def _main_async_loop(self):
         while True:
             self.logger.info(f"MQTT正在连接: {BROKER_URL}")
-            self._client = MQTTClient(config={"auto_reconnect": False})
+            self._client = MQTTClient(config={"connection_timeout": 1, "auto_reconnect": False})
             try:
                 await self._client.connect(BROKER_URL)
             except Exception as e:
