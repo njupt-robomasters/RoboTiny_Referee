@@ -1,7 +1,9 @@
 import tkinter as tk
-from tkinter import ttk, font
+from tkinter import ttk, font, PhotoImage
 import time
 import logging
+import sys
+import os
 
 from mqtt import MQTT, PUBLISH_FREQ
 
@@ -22,6 +24,16 @@ COLOR_DISCONNECTED = "#E74C3C"
 COLOR_TROUGH = "#BDC3C7"
 
 
+def get_resource(path):
+    if getattr(sys, 'frozen', False):
+        # 打包后的情况
+        base_path = sys._MEIPASS
+        return os.path.join(base_path, path)
+    else:
+        # 开发环境
+        return path
+
+
 class UI():
     def __init__(self, mqtt: MQTT, level=logging.WARNING):
         self.logger = logging.getLogger("UI")
@@ -33,6 +45,9 @@ class UI():
 
         self._root = tk.Tk()
         self._root.title("RoboMaster校内赛裁判端")
+        img = PhotoImage(file=get_resource("./assets/logo.png"))
+        self._root.tk.call('wm', 'iconphoto', self._root._w, img)
+        # self._root.iconbitmap(get_resource("./assets/logo.png"))
         self._root.configure(bg=COLOR_BG)
 
         self._create_styles_and_fonts()
